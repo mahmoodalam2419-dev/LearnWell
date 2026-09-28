@@ -1,8 +1,5 @@
 name: Build Android APK
 
-# Runs automatically whenever you push changes, and can also be started
-# manually from the Actions tab (the "Run workflow" button) — useful for
-# rebuilding without changing anything, e.g. after only updating an ad unit ID.
 on:
   push:
     branches: [ main ]
@@ -11,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -24,10 +22,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+          java-version: '17'
+          cache: gradle
 
       - name: Install project dependencies
         run: npm install
@@ -50,7 +46,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload the APK
         uses: actions/upload-artifact@v4
