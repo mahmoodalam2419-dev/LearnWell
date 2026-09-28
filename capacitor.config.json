@@ -1,6 +1,6 @@
 {
-  "appId": "com.yourname.hindienglishstories",
-  "appName": "Hindi-English Stories",
+  "appId": "com.translationstoryhindi.tsh",
+  "appName": "Translation Story Hindi",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {
