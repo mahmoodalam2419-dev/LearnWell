@@ -24,30 +24,31 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install project dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Unzip bundled audio into www/audio
+      - name: Unzip audio
         run: |
           mkdir -p www/audio
           unzip -o audio.zip -d www/audio
 
-      - name: Add the Android native project
-        run: npx cap add android
+      - name: Add Android Platform
+        # The --confirm flag and 'yes' pipe prevent the CLI from hanging on prompts
+        run: yes | npx cap add android
 
-      - name: Patch AndroidManifest.xml and strings.xml (AdMob + TTS)
+      - name: Patch Android Project
         run: node patch-android.js
 
-      - name: Sync web assets and plugins into the native project
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build the debug APK
+      - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Upload the APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
