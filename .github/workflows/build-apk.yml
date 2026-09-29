@@ -22,54 +22,49 @@ jobs:
         with:
           node-version: 22
 
-      - name: Set up Java 21
+      - name: Set up Java 21 (no auto-detection)
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
+          java-version-file: ''  # ← prevents error
 
-      - name: Verify Java
+      - name: Install Android SDK tools
         run: |
-          java -version
-          echo "JAVA_HOME=$JAVA_HOME"
-
-      - name: Install Android SDK packages
-        run: |
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
-      - name: Install project dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Unzip bundled audio into www/audio
+      - name: Unzip audio
         run: |
           mkdir -p www/audio
           unzip -o audio.zip -d www/audio
 
-      - name: Add the Android native project
+      - name: Add Android project
         run: yes | npx cap add android
 
-      - name: Force Gradle to use Java 21 and Android SDK
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
-
-      - name: Patch AndroidManifest.xml and strings.xml
+      - name: Patch AndroidManifest.xml & strings.xml
         run: node patch-android.js
 
-      - name: Sync web assets and plugins into the native project
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build the debug APK
+      - name: Build APK
         working-directory: android
         run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
-      - name: Upload the APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: app-debug-apk
+          name: TSH-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
