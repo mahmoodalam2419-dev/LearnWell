@@ -22,11 +22,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Set up Java
+      - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
+          cache: gradle
+
+      - name: Verify Java
+        run: |
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
 
       - name: Install Android SDK packages
         run: |
@@ -45,10 +51,12 @@ jobs:
       - name: Add the Android native project
         run: yes | npx cap add android
 
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+      - name: Force Gradle to use Java 21 and Android SDK
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
 
-      - name: Patch AndroidManifest.xml and strings.xml (AdMob + TTS)
+      - name: Patch AndroidManifest.xml and strings.xml
         run: node patch-android.js
 
       - name: Sync web assets and plugins into the native project
@@ -58,18 +66,9 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee gradle.log
-          test ${PIPESTATUS[0]} -eq 0
-
-      - name: Upload Gradle log if build fails
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-log
-          path: android/gradle.log
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload the APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
