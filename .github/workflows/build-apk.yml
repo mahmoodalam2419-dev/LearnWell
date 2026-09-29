@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -16,7 +19,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -24,33 +27,36 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android licenses and verify SDK
+        run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          yes | sdkmanager --licenses
+          sdkmanager --list
 
-      - name: Install dependencies
+      - name: Install project dependencies
         run: npm install
 
-      - name: Unzip audio
+      - name: Unzip bundled audio into www/audio
         run: |
           mkdir -p www/audio
           unzip -o audio.zip -d www/audio
 
-      - name: Add Android platform
+      - name: Add the Android native project
         run: npx cap add android
 
-      - name: Patch Android project
+      - name: Patch AndroidManifest.xml and strings.xml (AdMob + TTS)
         run: node patch-android.js
 
-      - name: Sync Capacitor
+      - name: Sync web assets and plugins into the native project
         run: npx cap sync android
 
-      - name: Build APK
+      - name: Build the debug APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK
+      - name: Upload the APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
